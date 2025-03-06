@@ -1,0 +1,137 @@
+import javax.crypto.Cipher;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.security.KeyFactory;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.Signature;
+import java.security.interfaces.RSAPublicKey;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.text.SimpleDateFormat;
+import java.util.Base64;
+import java.util.Random;
+import java.util.Scanner;
+
+class Keygen {
+
+    private static final String smartInputPublicKeyPem = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0+LewWdwP5+D7izKjBZ2SZiwcbJroRayDLLuOu+LUJcjewYyRUIi3APfPwwQROEYBNFbqoNeWS3ltCmHypoDC/kEzxFd+9DQqAl7eoJsWHZ9cZKZetICLttUTUZhYJpJXHfaVdvWu9JX4SuuDB4k" +
+            "+vzrQOwC1qXydo89CF5zIcIuPniH4GXFJlWbLJztwsDZuHMd/5B56nhC3RXpIF6XftqHEKml3LnD+dzvuVCMKwIQGv9BHRCuifBQMOIenvve3XtPwxeH83evyIIU/4fYkriFIXg1nBtJxMaXoHnw9Y7KfaS1NWHmBSLM5PfcN1Eh4PCgtQzL6RYY7bRjCau8pQIDAQAB";
+
+    private static final String privateKeyPem = "MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCyH7xJSGtG2y+tkv1qU5ws8fEmQavV1I3LRDgTrToj7uefl6Xgzapj85eSZtuEg5ustMLYhBnPPeRviu+jHH70IX+95ODnBsiYdzlhNDocZHMAbqTTuEjS+4mej/1+ZUiAtN2ofKN6i/fVbDVy7vDBXUZExHIocDLgY2poRsNC9Tu3j0m7M4GKE+g6trsHEQyi/IrHh+5UeXkS7EjihzS0WCBcbY9CvZbU3VCkei7GU7a95MordY9RN4jrsS0kVLrIjHY/NSJWwkswdkGYCLE0FQejamw84yJgOLmaE9PZD3iY2S1VtMnsfcsvtiB31k4AOUtHXWTBDmQZY85Z1KKLAgMBAAECggEAQenbd3TMecpnQMBZdUyeSMV4+rKnfzeqBtNmOuXJ0303CggIcoE4scb0ylC0n7tB0q2LQqrTkCxziVEs7zt+wSFaT29QSD1q4nyP56f3bwU+xySqasxRan15Rgs7f1fEdhg3w/7nUdRUsA3cU30W6z70X0MgiVVHhmBTgmXZIL/XovQ0Bz7TKtZzDN+EpojgsAS2IV8Vz2Crof8q999yUbhiTmwIXcSnSN4LALmxDd+KKmUPF+foAu3cII/ZiDlzclBHYOq3z2IDZCIT7cfgSuWVtXU14N8SGkpfVR8EHftW6Q7MD4qjIfjjM5MHNFdQ64HF4awEre9bBlms06DgYQKBgQDd1G/MYoZSVsnCSNqlPUexOdgu2qw79L9MYlMswPq7AG5lncQ8lMzlBYHs5WmHblOMyJIZFxyHK9a2sPJPEVgiFqLY3vrZ7J2Q1q8WwjLCVGYjmpmRn+4CZ+GY+vaqNma4FzQ8bIUEcdZjGY1+e/GGd3WVjOQ70q73nYvCQ6/IIQKBgQDNj9D9YZkQwqEFOQ89TeJ3sl14lCih8vlIpqq9JbVuS5MrarNHkOfVC71JrOQJHPm6xapVW70DqVMr8N0xqq69ECOElpXDs/KsbPwsgoo6yOImWjQtc2orrZ6fS0+g6zNoJJBsk6IN+3AAV5UqxqCsoPT4icjZXDKPnLPq0jllKwKBgQC8+hhP/vM9PBBfgh86O81Sjtu7drDZ1vQNR4piCvjOzFxAFzow/fbbeGip/vp61KM6wTetRkIYaWFee7nBYB471BrhNHxxoKDO3gWFFuWVJb9pv2/qXluuEv9eixYOBZBWbfYjL7PWCIDCJeejhEVK74PtZnyc9iv2aHHCilU64QKBgArG+4INV+UVDzQi5bWlG7aC13u26Np0zrUMZ+86xuRdef3Qvk2GP2FgGDCArAP+TOmJ64BGKwbCHeYz3qT3+elXq0UMUBXOnW6E2EPNJEoothKksA+h+XMIy0Q2wpoBOtS+9gN7SgfJovmhneR8PXhPiAhv0OP0fYIiCRzKoM+5AoGBAMsurWbhAwdTfyZyqLGNCtHNHF5YgfDt7IM0vwzhXF9NEdTJfWmfRA2vpnegF3Lkouwi6aevbEti8+H/lRULBLvn2Be7sOyZPIeuHaLVl3wi7XpqclLxkOyw5RJzsx0lKq/1q9s/WCv44ZCvIKU1Vak4GZ72VMlpXY791VtJC7gs";
+
+    private static final String publicKeyPem = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsh+8SUhrRtsvrZL9alOcLPHxJkGr1dSNy0Q4E606I+7nn5el4M2qY/OXkmbbhIObrLTC2IQZzz3kb4rvoxx+9CF/veTg5wbImHc5YTQ6HGRzAG6k07hI0vuJno/9fmVIgLTdqHyjeov31Ww1cu7wwV1GRMRyKHAy4GNqaEbDQvU7t49JuzOBihPoOra7BxEMovyKx4fuVHl5EuxI4oc0tFggXG2PQr2W1N1QpHouxlO2veTKK3WPUTeI67EtJFS6yIx2PzUiVsJLMHZBmAixNBUHo2psPOMiYDi5mhPT2Q94mNktVbTJ7H3LL7Ygd9ZOADlLR11kwQ5kGWPOWdSiiwIDAQAB";
+
+    private final String expireTime;
+
+    private final String username;
+
+    private final String uuid;
+
+    public Keygen(String expireTime, String username, String uuid) {
+        this.expireTime = expireTime;
+        this.username = username;
+        this.uuid = uuid;
+    }
+
+    public static void main(String[] args) throws Exception {
+        Scanner scanner = new Scanner(System.in);
+        System.out.print("请输入系统信息: ");
+        String sysInfo = scanner.nextLine();
+        System.out.println(sysInfo);
+
+        String[] split = sysInfo.split(";");
+        String uuid = split[0];
+        String username = split[1];
+
+        Keygen keygen = new Keygen("2099-12-31 00:00:00", username, uuid);
+        String license = keygen.generateLicense();
+
+        System.out.println("----------- power.conf 配置 -----------");
+        powerConf();
+
+        System.out.println();
+        System.out.println("----------- 激活码（填入时注意末尾不要换行） -----------");
+        System.out.println(license);
+    }
+
+    public static void powerConf() throws Exception {
+        PublicKey smartInputPublicKey = loadPublicKey(smartInputPublicKeyPem);
+        PublicKey publicKey = loadPublicKey(publicKeyPem);
+
+        System.out.println(";SmartInputPro start");
+        System.out.println("[Args]");
+        System.out.printf("EQUAL,65537,%d->65537,%d%n",
+                ((RSAPublicKey) smartInputPublicKey).getModulus(),
+                ((RSAPublicKey) publicKey).getModulus());
+        System.out.println(";SmartInputPro end");
+    }
+
+    private static PublicKey loadPublicKey(String key) throws Exception {
+        byte[] keyBytes = Base64.getDecoder().decode(key);
+        X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
+        KeyFactory kf = KeyFactory.getInstance("RSA");
+        return kf.generatePublic(spec);
+    }
+
+    private PrivateKey loadPrivateKey(String key) throws Exception {
+        byte[] keyBytes = Base64.getDecoder().decode(key);
+        PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
+        KeyFactory kf = KeyFactory.getInstance("RSA");
+        return kf.generatePrivate(spec);
+    }
+
+    public String generateLicense() throws Exception {
+        long expireTimestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(expireTime).getTime() / 1000;
+        String paddedUsername = padUsername(username);
+        String licenseStr = expireTimestamp + "IJ@@@" + paddedUsername + uuid;
+        String aesKey = generateRandomString(32);
+        String aesIv = generateRandomString(16);
+        return encrypt(aesKey, aesIv, licenseStr);
+    }
+
+    private String padUsername(String username) {
+        int paddingLen = 40 - username.length();
+        if (paddingLen <= 0) {
+            return username;
+        } else {
+            return username + "@".repeat(paddingLen);
+        }
+    }
+
+    private String encrypt(String aesKey, String aesIv, String plaintext) throws Exception {
+        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        SecretKeySpec keySpec = new SecretKeySpec(aesKey.getBytes(StandardCharsets.UTF_8), "AES");
+        IvParameterSpec ivSpec = new IvParameterSpec(aesIv.getBytes(StandardCharsets.UTF_8));
+        cipher.init(Cipher.ENCRYPT_MODE, keySpec, ivSpec);
+
+        byte[] paddedPlaintext = plaintext.getBytes(StandardCharsets.UTF_8);
+        byte[] encryptedBytes = cipher.doFinal(paddedPlaintext);
+
+        byte[] ivAndCipher = new byte[aesIv.getBytes().length + encryptedBytes.length];
+        System.arraycopy(aesIv.getBytes(), 0, ivAndCipher, 0, aesIv.getBytes().length);
+        System.arraycopy(encryptedBytes, 0, ivAndCipher, aesIv.getBytes().length, encryptedBytes.length);
+
+        String ivAndCipherB64 = Base64.getEncoder().encodeToString(ivAndCipher);
+        String lenStr = String.format("%06X", ivAndCipherB64.length());
+        String encryptedStr = aesKey + lenStr + ivAndCipherB64;
+
+        PrivateKey privateKey = loadPrivateKey(privateKeyPem);
+        Signature signature = Signature.getInstance("SHA256withRSA");
+        signature.initSign(privateKey);
+        signature.update(ivAndCipherB64.getBytes(StandardCharsets.UTF_8));
+        String signatureBase64 = Base64.getEncoder().encodeToString(signature.sign());
+
+        return encryptedStr + signatureBase64;
+    }
+
+    private String generateRandomString(int length) {
+        Random random = new Random();
+        StringBuilder sb = new StringBuilder(length);
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        for (int i = 0; i < length; i++) {
+            sb.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        return sb.toString();
+    }
